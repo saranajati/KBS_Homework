@@ -37,7 +37,6 @@ class BridgePuzzleSolver(KnowledgeEngine):
             depth=MATCH.depth
         ),
         TEST(lambda left: len(left) >= 2),
-        TEST(lambda elapsed_time: elapsed_time < 17),
         NOT(Solution())  # Don't generate moves after solution found
     )
     def cross_left_to_right(self, left, right, elapsed_time, path, depth):
@@ -76,7 +75,6 @@ class BridgePuzzleSolver(KnowledgeEngine):
         ),
         TEST(lambda right: len(right) >= 1),
         TEST(lambda left: len(left) > 0),  # Don't return if everyone is across
-        TEST(lambda elapsed_time: elapsed_time < 17),
         NOT(Solution())  # Don't generate moves after solution found
     )
     def return_right_to_left(self, left, right, elapsed_time, path, depth):
@@ -157,7 +155,6 @@ class BridgePuzzleSolver(KnowledgeEngine):
         ),
         TEST(lambda left: len(left) == 0),
         TEST(lambda right: len(right) == 4),
-        TEST(lambda elapsed_time: elapsed_time <= 17),
         NOT(Solution())  # Only fire once
     )
     def goal_reached(self, right, elapsed_time, path):
@@ -166,6 +163,72 @@ class BridgePuzzleSolver(KnowledgeEngine):
         
         # Store solution for printing
         self.declare(Solution(moves=path, total_time=elapsed_time))
+
+    # Rule: Validate time limit for states
+    @Rule(
+        State(
+            left=MATCH.left,
+            right=MATCH.right,
+            flashlight_location=MATCH.flashlight_location,
+            elapsed_time=MATCH.elapsed_time,
+            path=MATCH.path,
+            depth=MATCH.depth
+        ),
+        TEST(lambda elapsed_time: elapsed_time < 17)
+    )
+    def validate_state_time(self, left, right, flashlight_location, elapsed_time, path, depth):
+        """Only accept states within time limit"""
+        # This rule only fires if time is within limit
+        pass
+
+    # Rule: Reject states that exceed time limit
+    @Rule(
+        State(
+            left=MATCH.left,
+            right=MATCH.right,
+            flashlight_location=MATCH.flashlight_location,
+            elapsed_time=MATCH.elapsed_time,
+            path=MATCH.path,
+            depth=MATCH.depth
+        ),
+        TEST(lambda elapsed_time: elapsed_time >= 17)
+    )
+    def reject_state_time(self, left, right, flashlight_location, elapsed_time, path, depth):
+        """Reject states that exceed time limit"""
+        # This rule fires for invalid states
+        pass
+
+    # Rule: Validate time limit for solutions
+    @Rule(
+        Solution(
+            moves=MATCH.moves,
+            total_time=MATCH.total_time
+        ),
+        TEST(lambda total_time: total_time <= 17)
+    )
+    def validate_solution_time(self, moves, total_time):
+        """Only accept solutions within time limit"""
+        # This rule only fires if time is within limit
+        pass
+
+    # Rule: Reject solutions that exceed time limit
+    @Rule(
+        Solution(
+            moves=MATCH.moves,
+            total_time=MATCH.total_time
+        ),
+        TEST(lambda total_time: total_time > 17)
+    )
+    def reject_solution_time(self, moves, total_time):
+        """Reject solutions that exceed time limit"""
+        # Retract the invalid solution from knowledge base
+        # Use the fact instance that triggered this rule
+        for fact in self.facts:
+            if (isinstance(fact, Solution) and 
+                fact['moves'] == moves and 
+                fact['total_time'] == total_time):
+                self.retract(fact)
+                break
 
     # Rule: Print solution header when solution is found
     @Rule(
