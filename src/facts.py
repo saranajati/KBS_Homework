@@ -3,7 +3,7 @@ import collections
 import collections.abc
 collections.Mapping = collections.abc.Mapping
 
-# Optimized core state - combines position and path tracking
+
 
 
 class State(Fact):
@@ -14,7 +14,6 @@ class State(Fact):
     path = Field(list, mandatory=True)           # Complete move history
     depth = Field(int, default=0)               # Search depth
 
-# Optimized visited state tracking - prevents revisiting worse paths
 
 
 class VisitedState(Fact):
@@ -23,7 +22,6 @@ class VisitedState(Fact):
     flashlight_location = Field(str, mandatory=True)
     best_time = Field(float, mandatory=True)    # Best time to reach this state
 
-# Move printing - separates cross and return actions
 
 
 class PrintMove(Fact):
@@ -32,7 +30,6 @@ class PrintMove(Fact):
     people = Field(tuple, mandatory=True)
     time = Field(float, mandatory=True)
 
-# Solution tracking - final result
 
 
 class Solution(Fact):
