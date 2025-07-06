@@ -4,33 +4,9 @@ import collections
 import collections.abc
 collections.Mapping = collections.abc.Mapping
 
-# Define additional facts for declarative processing
-
-
-class PotentialState(Fact):
-    """Represents a potential state before validation"""
-    pass
-
-
-class RetractionRequest(Fact):
-    """Represents a request to retract a state"""
-    pass
-
-
-class ConstraintViolation(Fact):
-    """Represents a constraint violation that requires state retraction"""
-    pass
-
-
-class StateToRetract(Fact):
-    """Marks a state for retraction"""
-    pass
-
-
 class BridgePuzzleSolver(KnowledgeEngine):
     def __init__(self, people, max_time=17):
         super().__init__()
-        # Convert all times to float to match fact field types
         self.people = {name: float(time) for name, time in people}
         self.max_time = float(max_time)
         self.solution_found = False
@@ -47,8 +23,58 @@ class BridgePuzzleSolver(KnowledgeEngine):
             path=[],
             depth=0
         ))
+        self.declare(TimeConstraint(max_time=17.0))
 
-    # Rule: Generate crossing moves (left to right)
+    # Rule: Check if state is within valid time window
+    @Rule(
+        AS.state << State(
+            elapsed_time=MATCH.elapsed_time
+        ),
+        TimeConstraint(max_time=MATCH.max_time),
+        TEST(lambda elapsed_time, max_time: elapsed_time < max_time)
+    )
+    def mark_valid_time_window(self, state, elapsed_time, max_time):
+        """Mark states that are within valid time window"""
+        self.declare(ValidTimeWindow(
+            state_ref=state,
+            elapsed_time=elapsed_time
+        ))
+
+    # Rule: Check if state has sufficient people for crossing
+    @Rule(
+        AS.state << State(
+            left=MATCH.left,
+            flashlight_location="left"
+        ),
+        TEST(lambda left: len(left) >= 2)
+    )
+    def mark_sufficient_people_left(self, state, left):
+        """Mark states with sufficient people on left for crossing"""
+        self.declare(SufficientPeople(
+            state_ref=state,
+            side="left",
+            count=len(left)
+        ))
+
+    # Rule: Check if state has sufficient people for returning
+    @Rule(
+        AS.state << State(
+            left=MATCH.left,
+            right=MATCH.right,
+            flashlight_location="right"
+        ),
+        TEST(lambda right: len(right) >= 1),
+        TEST(lambda left: len(left) > 0)
+    )
+    def mark_sufficient_people_right(self, state, left, right):
+        """Mark states with sufficient people on right for returning"""
+        self.declare(SufficientPeople(
+            state_ref=state,
+            side="right",
+            count=len(right)
+        ))
+
+    # Rule: Create valid move conditions for crossing
     @Rule(
         AS.state << State(
             left=MATCH.left,
@@ -58,11 +84,63 @@ class BridgePuzzleSolver(KnowledgeEngine):
             path=MATCH.path,
             depth=MATCH.depth
         ),
-        TEST(lambda left: len(left) >= 2),
-        TEST(lambda elapsed_time: elapsed_time < 17),
-        NOT(Solution())  # Don't generate moves after solution found
+        ValidTimeWindow(state_ref=MATCH.state_ref),
+        SufficientPeople(state_ref=MATCH.state_ref, side="left"),
+        NOT(Solution()),
+        TEST(lambda state_ref, state: state_ref == state)
     )
-    def cross_left_to_right(self, state, left, right, elapsed_time, path, depth):
+    def create_cross_move_condition(self, state, left, right, elapsed_time, path, depth):
+        """Create valid move condition for crossing"""
+        self.declare(ValidMoveCondition(
+            state_ref=state,
+            move_type="cross",
+            left=left,
+            right=right,
+            elapsed_time=elapsed_time,
+            path=path,
+            depth=depth
+        ))
+
+    # Rule: Create valid move conditions for returning
+    @Rule(
+        AS.state << State(
+            left=MATCH.left,
+            right=MATCH.right,
+            flashlight_location="right",
+            elapsed_time=MATCH.elapsed_time,
+            path=MATCH.path,
+            depth=MATCH.depth
+        ),
+        ValidTimeWindow(state_ref=MATCH.state_ref),
+        SufficientPeople(state_ref=MATCH.state_ref, side="right"),
+        NOT(Solution()),
+        TEST(lambda state_ref, state: state_ref == state)
+    )
+    def create_return_move_condition(self, state, left, right, elapsed_time, path, depth):
+        """Create valid move condition for returning"""
+        self.declare(ValidMoveCondition(
+            state_ref=state,
+            move_type="return",
+            left=left,
+            right=right,
+            elapsed_time=elapsed_time,
+            path=path,
+            depth=depth
+        ))
+
+    # Rule: Generate crossing moves (left to right)
+    @Rule(
+        ValidMoveCondition(
+            state_ref=MATCH.state_ref,
+            move_type="cross",
+            left=MATCH.left,
+            right=MATCH.right,
+            elapsed_time=MATCH.elapsed_time,
+            path=MATCH.path,
+            depth=MATCH.depth
+        )
+    )
+    def cross_left_to_right(self, state_ref, left, right, elapsed_time, path, depth):
         """Generate all crossing combinations"""
         left = list(left)
         right = list(right)
@@ -74,8 +152,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
                 new_left = [p for p in left if p not in [person1, person2]]
                 new_right = sorted(list(right) + [person1, person2])
                 new_time = elapsed_time + crossing_time
-                new_path = list(path) + \
-                    [("cross", (person1, person2), crossing_time)]
+                new_path = list(path) + [("cross", (person1, person2), crossing_time)]
 
                 # Always declare potential state - validation will be done by rules
                 self.declare(PotentialState(
@@ -90,20 +167,17 @@ class BridgePuzzleSolver(KnowledgeEngine):
 
     # Rule: Generate return moves (right to left)
     @Rule(
-        AS.state << State(
+        ValidMoveCondition(
+            state_ref=MATCH.state_ref,
+            move_type="return",
             left=MATCH.left,
             right=MATCH.right,
-            flashlight_location="right",
             elapsed_time=MATCH.elapsed_time,
             path=MATCH.path,
             depth=MATCH.depth
-        ),
-        TEST(lambda right: len(right) >= 1),
-        TEST(lambda left: len(left) > 0),  # Don't return if everyone is across
-        TEST(lambda elapsed_time: elapsed_time < 17),
-        NOT(Solution())  # Don't generate moves after solution found
+        )
     )
-    def return_right_to_left(self, state, left, right, elapsed_time, path, depth):
+    def return_right_to_left(self, state_ref, left, right, elapsed_time, path, depth):
         """Generate all return moves"""
         left = list(left)
         right = list(right)
@@ -161,9 +235,10 @@ class BridgePuzzleSolver(KnowledgeEngine):
             depth=MATCH.depth,
             move_type=MATCH.move_type
         ),
-        TEST(lambda elapsed_time: elapsed_time <= 17)
+        TimeConstraint(max_time=MATCH.max_time),
+        TEST(lambda elapsed_time, max_time: elapsed_time <= max_time)
     )
-    def validate_potential_state(self, potential, left, right, flashlight_location, elapsed_time, path, depth, move_type):
+    def validate_potential_state(self, potential, left, right, flashlight_location, elapsed_time, path, depth, move_type, max_time):
         """Convert valid potential states to actual states"""
         self.declare(State(
             left=left,
@@ -185,9 +260,10 @@ class BridgePuzzleSolver(KnowledgeEngine):
             depth=MATCH.depth,
             move_type=MATCH.move_type
         ),
-        TEST(lambda elapsed_time: elapsed_time > 17)
+        TimeConstraint(max_time=MATCH.max_time),
+        TEST(lambda elapsed_time, max_time: elapsed_time > max_time)
     )
-    def reject_potential_state(self, potential, left, right, flashlight_location, elapsed_time, path, depth, move_type):
+    def reject_potential_state(self, potential, left, right, flashlight_location, elapsed_time, path, depth, move_type, max_time):
         """Reject potential states that exceed time limit"""
         # State is automatically not converted to actual state
         pass
@@ -216,7 +292,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
 
     # ===== CONSTRAINT VIOLATION RULES =====
 
-    # Rule 1: Time Limit Violation - Mark states exceeding 17 minutes for retraction
+    # Rule 1: Time Limit Violation - Mark states exceeding time limit
     @Rule(
         AS.state << State(
             left=MATCH.left,
@@ -226,14 +302,15 @@ class BridgePuzzleSolver(KnowledgeEngine):
             path=MATCH.path,
             depth=MATCH.depth
         ),
-        TEST(lambda elapsed_time: elapsed_time > 17)
+        TimeConstraint(max_time=MATCH.max_time),
+        TEST(lambda elapsed_time, max_time: elapsed_time > max_time)
     )
-    def time_limit_violation(self, state, left, right, flashlight_location, elapsed_time, path, depth):
-        """Mark states that exceed the 17-minute time limit for retraction"""
+    def time_limit_violation(self, state, left, right, flashlight_location, elapsed_time, path, depth, max_time):
+        """Mark states that exceed the time limit for retraction"""
         self.declare(StateToRetract(
             state_ref=state,
             violation_type="TIME_LIMIT_EXCEEDED",
-            details=f"State time {elapsed_time} exceeds limit of 17 minutes"
+            details=f"State time {elapsed_time} exceeds limit of {max_time} minutes"
         ))
 
     # Rule 2: Duplicate State Elimination - Mark worse duplicate states for retraction
@@ -255,7 +332,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
             depth=MATCH.depth2
         ),
         TEST(lambda left1, right1, flashlight_location1, left2, right2, flashlight_location2, depth1, depth2, elapsed_time1, elapsed_time2:
-             left1 == left2 and right1 == right2 and flashlight_location1 == flashlight_location2 and
+             left1 == left2 and right1 == right2 and flashlight_location1 == flashlight_location2 and 
              depth1 != depth2 and elapsed_time1 > elapsed_time2)
     )
     def duplicate_state_elimination(self, state1, state2, left1, right1, flashlight_location1, elapsed_time1, path1, depth1,
@@ -453,12 +530,13 @@ class BridgePuzzleSolver(KnowledgeEngine):
             elapsed_time=MATCH.elapsed_time,
             path=MATCH.path
         ),
+        TimeConstraint(max_time=MATCH.max_time),
         TEST(lambda left: len(left) == 0),
         TEST(lambda right: len(right) == 4),
-        TEST(lambda elapsed_time: elapsed_time <= 17),
+        TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
         NOT(Solution())  # Only fire once
     )
-    def goal_reached(self, state, right, elapsed_time, path):
+    def goal_reached(self, state, right, elapsed_time, path, max_time):
         """Solution found - all people crossed successfully"""
         self.solution_found = True
         self.declare(Solution(moves=path, total_time=elapsed_time))
@@ -498,8 +576,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
     )
     def print_cross_move(self, print_move, step, people, time):
         """Print crossing move"""
-        print(
-            f"Step {step}: {people[0]} and {people[1]} cross together → {time} minutes")
+        print(f"Step {step}: {people[0]} and {people[1]} cross together → {time} minutes")
 
     # Rule: Print return moves (1 person)
     @Rule(
@@ -513,8 +590,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
     )
     def print_return_move(self, print_move, step, people, time):
         """Print return move"""
-        print(
-            f"Step {step}: {people[0]} returns with flashlight → {time} minutes")
+        print(f"Step {step}: {people[0]} returns with flashlight → {time} minutes")
 
     # Rule: Print solution summary after all moves
     @Rule(
@@ -522,13 +598,14 @@ class BridgePuzzleSolver(KnowledgeEngine):
             moves=MATCH.moves,
             total_time=MATCH.total_time
         ),
-        TEST(lambda total_time: total_time <= 17)
+        TimeConstraint(max_time=MATCH.max_time),
+        TEST(lambda total_time, max_time: total_time <= max_time)
     )
-    def print_solution_summary(self, solution, moves, total_time):
+    def print_solution_summary(self, solution, moves, total_time, max_time):
         """Print final solution summary"""
         print("-" * 50)
         print(f"SUCCESS: All 4 people crossed in {total_time} minutes!")
-        print(f"Zombies arrive in 17 minutes - SAFE! ✓")
+        print(f"Zombies arrive in {max_time} minutes - SAFE! ✓")
 
     # Rule: Handle no solution case
     @Rule(
