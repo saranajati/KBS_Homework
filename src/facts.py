@@ -3,57 +3,39 @@ import collections
 import collections.abc
 collections.Mapping = collections.abc.Mapping
 
-# Facts for people and their crossing times
+# Optimized core state - combines position and path tracking
 
 
-class Person(Fact):
-    name = Field(str, mandatory=True)
-    crossing_time = Field(int, mandatory=True)
-    location = Field(str, default="left")  # "left" or "right"
+class State(Fact):
+    left = Field(list, mandatory=True)           # People on left side
+    right = Field(list, mandatory=True)          # People on right side
+    flashlight_location = Field(str, mandatory=True)  # "left" or "right"
+    elapsed_time = Field(float, mandatory=True)   # Total time elapsed
+    path = Field(list, mandatory=True)           # Complete move history
+    depth = Field(int, default=0)               # Search depth
 
-# Facts for the bridge state
-
-
-class BridgeState(Fact):
-    left_side = Field(list, default=lambda: [])
-
-    right_side = Field(list, default=lambda: [])
-    flashlight_location = Field(str, default="left")
-    time_elapsed = Field(int, default=0)
-    moves_made = Field(list, default=lambda: [])
-
-# Facts for the game state
+# Optimized visited state tracking - prevents revisiting worse paths
 
 
-class GameState(Fact):
-    total_time_limit = Field(int, default=17)
-    strategy = Field(str, default="bfs")
-    current_depth = Field(int, default=0)
-    max_depth = Field(int, default=50)
+class VisitedState(Fact):
+    left = Field(list, mandatory=True)
+    right = Field(list, mandatory=True)
+    flashlight_location = Field(str, mandatory=True)
+    best_time = Field(float, mandatory=True)    # Best time to reach this state
 
-# Facts for move tracking
+# Move printing - separates cross and return actions
 
 
-class Move(Fact):
-    from_side = Field(str, mandatory=True)
-    to_side = Field(str, mandatory=True)
-    people = Field(list, mandatory=True)
-    time_taken = Field(int, mandatory=True)
-    move_number = Field(int, mandatory=True)
+class PrintMove(Fact):
+    step = Field(int, mandatory=True)
+    action = Field(str, mandatory=True)  # "cross" or "return"
+    people = Field(tuple, mandatory=True)
+    time = Field(float, mandatory=True)
 
-# Facts for solution tracking
+# Solution tracking - final result
 
 
 class Solution(Fact):
     moves = Field(list, mandatory=True)
-    total_time = Field(int, mandatory=True)
+    total_time = Field(float, mandatory=True)
     is_valid = Field(bool, default=True)
-
-# Facts for search state (for BFS/DFS)
-
-
-class SearchState(Fact):
-    state_id = Field(str, mandatory=True)
-    parent_state = Field(str, default="")
-    depth = Field(int, default=0)
-    visited = Field(bool, default=False)

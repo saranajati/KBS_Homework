@@ -1,5 +1,5 @@
 from experta import Fact
-from normal_engine import BridgePuzzleSolver
+from engine import BridgePuzzleSolver
 
 
 def main():
