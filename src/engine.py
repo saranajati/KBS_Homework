@@ -617,4 +617,30 @@ class BridgePuzzleSolver(KnowledgeEngine):
         print("No solution found within the time limit.")
         self.solution_found = False
 
+    # Rule: Log each new state as a node in the search tree
+    @Rule(
+        AS.state << State(
+            left=MATCH.left,
+            right=MATCH.right,
+            flashlight_location=MATCH.flashlight_location,
+            elapsed_time=MATCH.elapsed_time,
+            path=MATCH.path,
+            depth=MATCH.depth
+        ),
+        TEST(lambda depth: depth > 0)  # Skip initial state
+    )
+    def log_search_tree_node(self, state, left, right, flashlight_location, elapsed_time, path, depth):
+        """Log each node in the search tree with indentation and clear formatting"""
+        last_action = path[-1] if path else (None, (), 0)
+        action, people, time_taken = last_action
+        # Convert frozenlists to plain lists for display
+        left_list = list(left)
+        right_list = list(right)
+        people_str = ", ".join(people)
+        # Indentation and tree structure
+        indent = "    " * (depth - 1)
+        branch = "└─" if depth > 1 else ""
+        print(f"{indent}{branch}[Depth {depth}] {action}: {people_str}")
+        print(f"{indent}    Left: {left_list} | Right: {right_list} | Flashlight: {flashlight_location} | Time: {elapsed_time}")
+
 
