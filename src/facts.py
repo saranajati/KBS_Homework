@@ -1,83 +1,110 @@
-from experta import Fact, Field
-import collections
-import collections.abc
-collections.Mapping = collections.abc.Mapping
+from experta import Fact
 
-
+# State representation
 
 
 class State(Fact):
-    left = Field(list, mandatory=True)           # People on left side
-    right = Field(list, mandatory=True)          # People on right side
-    flashlight_location = Field(str, mandatory=True)  # "left" or "right"
-    elapsed_time = Field(float, mandatory=True)   # Total time elapsed
-    path = Field(list, mandatory=True)           # Complete move history
-    depth = Field(int, default=0)               # Search depth
+    """Represents a state of the bridge puzzle"""
+    left = None          # People on left side
+    right = None         # People on right side
+    flashlight_location = None  # "left" or "right"
+    elapsed_time = None  # Total time elapsed
+    path = None          # List of moves taken
+    depth = None         # Search depth
+
+# Potential state (before validation)
 
 
+class PotentialState(Fact):
+    """Represents a potential state before validation"""
+    left = None
+    right = None
+    flashlight_location = None
+    elapsed_time = None
+    path = None
+    depth = None
+    move_type = None     # "cross" or "return"
 
-class VisitedState(Fact):
-    left = Field(list, mandatory=True)
-    right = Field(list, mandatory=True)
-    flashlight_location = Field(str, mandatory=True)
-    best_time = Field(float, mandatory=True)    # Best time to reach this state
-
-
-
-class PrintMove(Fact):
-    step = Field(int, mandatory=True)
-    action = Field(str, mandatory=True)  # "cross" or "return"
-    people = Field(tuple, mandatory=True)
-    time = Field(float, mandatory=True)
-
+# Solution representation
 
 
 class Solution(Fact):
-    moves = Field(list, mandatory=True)
-    total_time = Field(float, mandatory=True)
-    is_valid = Field(bool, default=True)
+    """Represents a found solution"""
+    moves = None         # List of moves
+    total_time = None    # Total time taken
+    solution_id = None   # Unique identifier for the solution
 
-# Additional Fact classes for constraint checking
+# Track printed solutions
+
+
+class SolutionPrinted(Fact):
+    """Tracks which solutions have been printed"""
+    solution_id = None
+
+# Constraints
+
 
 class TimeConstraint(Fact):
-    max_time = Field(float, mandatory=True)
+    """Time constraint for the puzzle"""
+    max_time = None
 
-class PotentialState(Fact):
-    left = Field(list, mandatory=True)
-    right = Field(list, mandatory=True)
-    flashlight_location = Field(str, mandatory=True)
-    elapsed_time = Field(float, mandatory=True)
-    path = Field(list, mandatory=True)
-    depth = Field(int, mandatory=True)
-    move_type = Field(str, mandatory=True)  # "cross" or "return"
+# State tracking
 
-class RetractionRequest(Fact):
-    state_signature = Field(tuple, mandatory=True)
-    reason = Field(str, mandatory=True)
 
-class ConstraintViolation(Fact):
-    violation_type = Field(str, mandatory=True)
-    details = Field(str, mandatory=True)
+class VisitedState(Fact):
+    """Tracks visited states with best time"""
+    left = None
+    right = None
+    flashlight_location = None
+    best_time = None
 
-class StateToRetract(Fact):
-    state_ref = Field(object, mandatory=True)
-    violation_type = Field(str, mandatory=True)
-    details = Field(str, mandatory=True)
+# Validation markers
+
 
 class ValidTimeWindow(Fact):
-    state_ref = Field(object, mandatory=True)
-    elapsed_time = Field(float, mandatory=True)
+    """Marks states within valid time window"""
+    state_ref = None
+    elapsed_time = None
+
 
 class SufficientPeople(Fact):
-    state_ref = Field(object, mandatory=True)
-    side = Field(str, mandatory=True)  # "left" or "right"
-    count = Field(int, mandatory=True)
+    """Marks states with sufficient people for moves"""
+    state_ref = None
+    side = None          # "left" or "right"
+    count = None
+
 
 class ValidMoveCondition(Fact):
-    state_ref = Field(object, mandatory=True)
-    move_type = Field(str, mandatory=True)  # "cross" or "return"
-    left = Field(list, mandatory=True)
-    right = Field(list, mandatory=True)
-    elapsed_time = Field(float, mandatory=True)
-    path = Field(list, mandatory=True)
-    depth = Field(int, mandatory=True)
+    """Marks states with valid move conditions"""
+    state_ref = None
+    move_type = None     # "cross" or "return"
+    left = None
+    right = None
+    elapsed_time = None
+    path = None
+    depth = None
+
+# Constraint violations
+
+
+class StateToRetract(Fact):
+    """Marks states for retraction due to constraint violations"""
+    state_ref = None
+    violation_type = None
+    details = None
+
+
+class RetractionRequest(Fact):
+    """Requests retraction of a state"""
+    state_signature = None
+    reason = None
+
+# Print management
+
+
+class PrintMove(Fact):
+    """Manages printing of solution moves"""
+    step = None
+    action = None
+    people = None
+    time = None
