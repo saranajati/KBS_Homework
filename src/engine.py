@@ -4,12 +4,14 @@ import collections
 import collections.abc
 collections.Mapping = collections.abc.Mapping
 
+
 class BridgePuzzleSolver(KnowledgeEngine):
     def __init__(self, people, max_time=17):
         super().__init__()
         self.people = {name: float(time) for name, time in people}
         self.max_time = float(max_time)
-        self.solution_found = False
+        self.solutions = []  # Store all solutions
+        self.solution_count = 0
 
     @Rule()
     def initialize(self):
@@ -86,7 +88,6 @@ class BridgePuzzleSolver(KnowledgeEngine):
         ),
         ValidTimeWindow(state_ref=MATCH.state_ref),
         SufficientPeople(state_ref=MATCH.state_ref, side="left"),
-        NOT(Solution()),
         TEST(lambda state_ref, state: state_ref == state)
     )
     def create_cross_move_condition(self, state, left, right, elapsed_time, path, depth):
@@ -113,7 +114,6 @@ class BridgePuzzleSolver(KnowledgeEngine):
         ),
         ValidTimeWindow(state_ref=MATCH.state_ref),
         SufficientPeople(state_ref=MATCH.state_ref, side="right"),
-        NOT(Solution()),
         TEST(lambda state_ref, state: state_ref == state)
     )
     def create_return_move_condition(self, state, left, right, elapsed_time, path, depth):
@@ -152,7 +152,8 @@ class BridgePuzzleSolver(KnowledgeEngine):
                 new_left = [p for p in left if p not in [person1, person2]]
                 new_right = sorted(list(right) + [person1, person2])
                 new_time = elapsed_time + crossing_time
-                new_path = list(path) + [("cross", (person1, person2), crossing_time)]
+                new_path = list(path) + \
+                    [("cross", (person1, person2), crossing_time)]
 
                 # Always declare potential state - validation will be done by rules
                 self.declare(PotentialState(
@@ -332,7 +333,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
             depth=MATCH.depth2
         ),
         TEST(lambda left1, right1, flashlight_location1, left2, right2, flashlight_location2, depth1, depth2, elapsed_time1, elapsed_time2:
-             left1 == left2 and right1 == right2 and flashlight_location1 == flashlight_location2 and 
+             left1 == left2 and right1 == right2 and flashlight_location1 == flashlight_location2 and
              depth1 != depth2 and elapsed_time1 > elapsed_time2)
     )
     def duplicate_state_elimination(self, state1, state2, left1, right1, flashlight_location1, elapsed_time1, path1, depth1,
@@ -521,7 +522,7 @@ class BridgePuzzleSolver(KnowledgeEngine):
             best_time=elapsed_time
         ))
 
-    # Rule: Goal detection - all people on right side
+    # Rule: Goal detection - all people on right side (MODIFIED TO ALLOW MULTIPLE SOLUTIONS)
     @Rule(
         AS.state << State(
             left=MATCH.left,
@@ -533,89 +534,63 @@ class BridgePuzzleSolver(KnowledgeEngine):
         TimeConstraint(max_time=MATCH.max_time),
         TEST(lambda left: len(left) == 0),
         TEST(lambda right: len(right) == 4),
-        TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
-        NOT(Solution())  # Only fire once
+        TEST(lambda elapsed_time, max_time: elapsed_time <= max_time)
     )
     def goal_reached(self, state, right, elapsed_time, path, max_time):
         """Solution found - all people crossed successfully"""
-        self.solution_found = True
-        self.declare(Solution(moves=path, total_time=elapsed_time))
+        self.solution_count += 1
+        # Store solution in instance variable
+        self.solutions.append({
+            'moves': list(path),
+            'total_time': elapsed_time,
+            'solution_number': self.solution_count
+        })
 
-    # Rule: Print solution header when solution is found
+        # Create a unique Solution fact for each solution
+        self.declare(Solution(
+            moves=path,
+            total_time=elapsed_time,
+            solution_id=self.solution_count
+        ))
+
+    # Rule: Print solution when found (MODIFIED TO HANDLE MULTIPLE SOLUTIONS)
     @Rule(
         AS.solution << Solution(
             moves=MATCH.moves,
-            total_time=MATCH.total_time
+            total_time=MATCH.total_time,
+            solution_id=MATCH.solution_id
         ),
-        NOT(PrintMove())  # Only print header before any moves are printed
+        # Only print each solution once
+        NOT(SolutionPrinted(solution_id=MATCH.solution_id))
     )
-    def print_solution_header(self, solution, moves, total_time):
-        """Print solution header and create PrintMove facts"""
-        print(f"\nSOLUTION FOUND (Total time: {total_time} minutes):")
-        print("-" * 50)
+    def print_solution(self, solution, moves, total_time, solution_id):
+        """Print each solution as it's found"""
+        print(f"\n{'='*60}")
+        print(
+            f"SOLUTION {solution_id} FOUND (Total time: {total_time} minutes):")
+        print('='*60)
 
-        # Create PrintMove facts for each step
-        for i, move in enumerate(moves, 1):
+        # Print moves in correct order (reverse chronological)
+        for i, move in enumerate(reversed(moves), 1):
             action, people, time_taken = move
-            self.declare(PrintMove(
-                step=i,
-                action=action,
-                people=people,
-                time=float(time_taken)
-            ))
+            if action == "cross":
+                if len(people) == 2:
+                    print(
+                        f"Step {i}: {people[0]} and {people[1]} cross together → {time_taken} minutes")
+                else:
+                    print(
+                        f"Step {i}: {', '.join(people)} cross together → {time_taken} minutes")
+            elif action == "return":
+                print(
+                    f"Step {i}: {people[0]} returns with flashlight → {time_taken} minutes")
 
-    # Rule: Print crossing moves (2 people)
-    @Rule(
-        AS.print_move << PrintMove(
-            step=MATCH.step,
-            action="cross",
-            people=MATCH.people,
-            time=MATCH.time
-        ),
-        TEST(lambda people: len(people) == 2)
-    )
-    def print_cross_move(self, print_move, step, people, time):
-        """Print crossing move"""
-        print(f"Step {step}: {people[0]} and {people[1]} cross together → {time} minutes")
-
-    # Rule: Print return moves (1 person)
-    @Rule(
-        AS.print_move << PrintMove(
-            step=MATCH.step,
-            action="return",
-            people=MATCH.people,
-            time=MATCH.time
-        ),
-        TEST(lambda people: len(people) == 1)
-    )
-    def print_return_move(self, print_move, step, people, time):
-        """Print return move"""
-        print(f"Step {step}: {people[0]} returns with flashlight → {time} minutes")
-
-    # Rule: Print solution summary after all moves
-    @Rule(
-        AS.solution << Solution(
-            moves=MATCH.moves,
-            total_time=MATCH.total_time
-        ),
-        TimeConstraint(max_time=MATCH.max_time),
-        TEST(lambda total_time, max_time: total_time <= max_time)
-    )
-    def print_solution_summary(self, solution, moves, total_time, max_time):
-        """Print final solution summary"""
-        print("-" * 50)
+        print("-" * 60)
         print(f"SUCCESS: All 4 people crossed in {total_time} minutes!")
-        print(f"Zombies arrive in {max_time} minutes - SAFE! ✓")
+        print(f"Zombies arrive in 17.0 minutes - SAFE! ✓")
+        print('='*60)
 
-    # Rule: Handle no solution case
-    @Rule(
-        NOT(Solution()),
-        NOT(State())  # No more states to process
-    )
-    def no_solution_found(self):
-        """Handle case when no solution is found"""
-        print("No solution found within the time limit.")
-        self.solution_found = False
+        # Mark this solution as printed
+        self.declare(SolutionPrinted(solution_id=solution_id))
 
     # Rule: Log each new state as a node in the search tree
     @Rule(
@@ -643,4 +618,24 @@ class BridgePuzzleSolver(KnowledgeEngine):
         print(f"{indent}{branch}[Depth {depth}] {action}: {people_str}")
         print(f"{indent}    Left: {left_list} | Right: {right_list} | Flashlight: {flashlight_location} | Time: {elapsed_time}")
 
+    def print_final_summary(self):
+        """Print summary of all solutions found"""
+        print(f"\n{'='*80}")
+        print(f"FINAL SUMMARY: {len(self.solutions)} SOLUTION(S) FOUND")
+        print('='*80)
 
+        if self.solutions:
+            for i, sol in enumerate(self.solutions, 1):
+                print(f"\nSolution {i}: {sol['total_time']} minutes")
+                for j, move in enumerate(reversed(sol['moves']), 1):
+                    action, people, time_taken = move
+                    if action == "cross":
+                        print(
+                            f"  Step {j}: {people[0]} and {people[1]} cross → {time_taken} min")
+                    else:
+                        print(
+                            f"  Step {j}: {people[0]} returns → {time_taken} min")
+        else:
+            print("No solutions found within the time limit.")
+
+        print('='*80)
