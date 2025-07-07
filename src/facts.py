@@ -108,3 +108,8 @@ class PrintMove(Fact):
     action = None
     people = None
     time = None
+
+# BFS & DFS
+
+class SearchAlgorithm(Fact):
+    algorithm = "bfs"
