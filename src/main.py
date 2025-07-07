@@ -17,6 +17,7 @@ def main():
     engine = BridgePuzzleSolver(travel_time, max_time)
     engine.reset()
     engine.run()
+    engine.print_search_tree()
 
 
 if __name__ == "__main__":
