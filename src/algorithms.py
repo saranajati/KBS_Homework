@@ -1,6 +1,6 @@
 from facts import *
 from experta import *
-from engine import *
+from Dfs.engine import *
 
 
 class BridgePuzzleAlgorithms(KnowledgeEngine):
