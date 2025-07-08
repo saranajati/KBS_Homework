@@ -4,12 +4,13 @@ import collections
 import collections.abc
 collections.Mapping = collections.abc.Mapping
 
+
 class BridgePuzzleSolverMoves(KnowledgeEngine):
     def __init__(self, people, max_time=17):
         super().__init__()
         self.people = {name: float(time) for name, time in people}
         self.max_time = float(max_time)
-        self.solutions = []  # Store all solutions
+        self.solutions = []  
         self.solution_count = 0
 
     @Rule()
@@ -33,14 +34,16 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
         TEST(lambda elapsed_time, max_time: elapsed_time < max_time),
     )
     def mark_valid_time_window(self, state, elapsed_time, max_time):
-        self.declare(ValidTimeWindow(state_ref=state, elapsed_time=elapsed_time))
+        self.declare(ValidTimeWindow(
+            state_ref=state, elapsed_time=elapsed_time))
 
     @Rule(
         AS.state << State(left=MATCH.left, flashlight_location="left"),
         TEST(lambda left: len(left) >= 2),
     )
     def mark_sufficient_people_left(self, state, left):
-        self.declare(SufficientPeople(state_ref=state, side="left", count=len(left)))
+        self.declare(SufficientPeople(
+            state_ref=state, side="left", count=len(left)))
 
     @Rule(
         AS.state
@@ -49,7 +52,8 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
         TEST(lambda left: len(left) > 0),
     )
     def mark_sufficient_people_right(self, state, left, right):
-        self.declare(SufficientPeople(state_ref=state, side="right", count=len(right)))
+        self.declare(SufficientPeople(state_ref=state,
+                     side="right", count=len(right)))
 
     @Rule(
         AS.state
@@ -120,7 +124,7 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
             depth=MATCH.depth,
         )
     )
-    def cross_left_to_right(self, state_ref, left, right, elapsed_time, path, depth):
+    def cross_left_to_right(self,  left, right, elapsed_time, path, depth):
         left = list(left)
         right = list(right)
         for i in range(len(left)):
@@ -128,10 +132,13 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
                 person1, person2 = left[i], left[j]
                 crossing_time = max(self.people[person1], self.people[person2])
 
-                new_left = [p for p in left if p not in [person1, person2]]
+                excluded_people = {person1, person2}
+                new_left = list(
+                    filter(lambda p: p not in excluded_people, left))
                 new_right = sorted(list(right) + [person1, person2])
                 new_time = elapsed_time + crossing_time
-                new_path = list(path) + [("cross", (person1, person2), crossing_time)]
+                new_path = list(path) + \
+                    [("cross", (person1, person2), crossing_time)]
 
                 self.declare(
                     PotentialState(
@@ -156,14 +163,14 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
             depth=MATCH.depth,
         )
     )
-    def return_right_to_left(self, state_ref, left, right, elapsed_time, path, depth):
+    def return_right_to_left(self,  left, right, elapsed_time, path, depth):
         left = list(left)
         right = list(right)
         for person in right:
             crossing_time = self.people[person]
 
             new_left = sorted(list(left) + [person])
-            new_right = [p for p in right if p != person]
+            new_right = list(filter(lambda p: p != person, right))
             new_time = elapsed_time + crossing_time
             new_path = list(path) + [("return", (person,), crossing_time)]
 
@@ -197,7 +204,7 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
         ),
     )
     def record_new_state(
-        self, left, right, flashlight_location, elapsed_time, path
+        self, left, right, flashlight_location, elapsed_time,
     ):
         self.declare(
             VisitedState(
@@ -230,8 +237,7 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
         elapsed_time,
         path,
         depth,
-        move_type,
-        max_time,
+
     ):
         self.declare(
             State(
@@ -257,9 +263,9 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
         TEST(lambda depth: depth > 0),
     )
     def log_search_tree_node(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
+        self, left, right, flashlight_location, elapsed_time, path, depth
     ):
-        last_action = path[-1] if path else (None, (), 0)
+        last_action = path[-1] or (None, (), 0)
         action, people, time_taken = last_action
         left_list = list(left)
         right_list = list(right)
@@ -271,7 +277,9 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
             f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m"
         )
         print("")
-        {
-            "cross": lambda: print("cross logic"),
-            "return": lambda: print("return logic")
-        }[action]()
+
+        action_handlers = {
+            "cross": lambda: print(f"Action: {people[0]} and {people[1]} cross together → {time_taken} min"),
+            "return": lambda: print(f"Action: {people[0]} returns with flashlight → {time_taken} min")
+        }
+        action_handlers.get(action, lambda: None)()
