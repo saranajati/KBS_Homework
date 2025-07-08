@@ -120,8 +120,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def prune_worse_path(self, state):
         """Remove states with worse times"""
-        if state in self.facts:
-            self.retract(state)
+        self.retract(state)
 
     @Rule(
         AS.queue << BFSQueue(current_depth=MATCH.current_depth,
@@ -255,7 +254,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
 
         if all(hasattr(state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states):
             new_processing_depth = processing_depth + 1
-            # Only retract if queue still exists in facts
             if queue in self.facts:
                 self.retract(queue)
             self.declare(BFSQueue(current_depth=queue['current_depth'],
