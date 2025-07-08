@@ -300,4 +300,24 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m")
         print("")
 
-   
+    def handle_cross_action(self, step, people, time_taken):
+        actions = {
+            2: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} and {people[1]} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+            1: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+        }
+        # Use the dictionary, defaulting to the "else" case if length not 1 or 2
+        actions.get(
+            len(people),
+            lambda: print(
+                f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+        )()
+
+    def handle_return_action(self, step, people, time_taken):
+        print(
+            f"\033[31mStep {step}:\033[0m {people[0]} returns with flashlight ⨠ \033[34m{time_taken} minutes\033[0m"
+        )
