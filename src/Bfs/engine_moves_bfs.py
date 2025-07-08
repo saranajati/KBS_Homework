@@ -19,7 +19,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         left_side = list(self.people.keys())
         self.sequence_counter += 1
 
-        facts_to_retract = filter(lambda fact: isinstance(fact, (State, VisitedState, ReadyToProcess, ProcessedState, BFSQueue)), list(self.facts))
+        facts_to_retract = filter(lambda fact: isinstance(
+            fact, (State, VisitedState, ReadyToProcess, ProcessedState, BFSQueue)), list(self.facts))
         for fact in facts_to_retract:
             self.retract(fact)
 
@@ -173,14 +174,18 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                     )
                 )
 
-                if new_depth > current_depth:
-                    if queue in self.facts:
-                        self.retract(queue)
-                    self.declare(BFSQueue(current_depth=new_depth,
-                                 processing_depth=current_depth))
+                (new_depth > current_depth) and self._update_bfs_queue(
+                    queue, new_depth, current_depth)
 
         # Mark this state as processed
         self.declare(ProcessedState(sequence=sequence))
+
+    def _update_bfs_queue(self, queue, new_depth, current_depth):
+        """Helper method to update BFS queue"""
+        (queue in self.facts) and self.retract(queue)
+        self.declare(BFSQueue(current_depth=new_depth,
+                     processing_depth=current_depth))
+        return True
 
     @Rule(
         AS.queue << BFSQueue(current_depth=MATCH.current_depth,
@@ -230,11 +235,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 )
             )
 
-            if new_depth > current_depth:
-                if queue in self.facts:
-                    self.retract(queue)
-                self.declare(BFSQueue(current_depth=new_depth,
-                             processing_depth=current_depth))
+            (new_depth > current_depth) and self._update_bfs_queue(
+                queue, new_depth, current_depth)
 
         # Mark this state as processed
         self.declare(ProcessedState(sequence=sequence))
@@ -252,14 +254,18 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         processed_sequences = [
             f.sequence for f in self.facts if isinstance(f, ProcessedState)]
 
-        if all(hasattr(state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states):
-            new_processing_depth = processing_depth + 1
-            if queue in self.facts:
-                self.retract(queue)
-            self.declare(BFSQueue(current_depth=queue['current_depth'],
-                         processing_depth=new_processing_depth))
-            print(
-                f"\n🔄 BFS: Advancing to process depth {new_processing_depth}")
+        all_processed = all(hasattr(
+            state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states)
+        all_processed and self._advance_to_next_level(queue, processing_depth)
+
+    def _advance_to_next_level(self, queue, processing_depth):
+        """Helper method to advance to next BFS level"""
+        new_processing_depth = processing_depth + 1
+        (queue in self.facts) and self.retract(queue)
+        self.declare(BFSQueue(
+            current_depth=queue['current_depth'], processing_depth=new_processing_depth))
+        print(f"\n🔄 BFS: Advancing to process depth {new_processing_depth}")
+        return True
 
     @Rule(
         AS.ready << ReadyToProcess(state_ref=MATCH.state_ref),
@@ -309,7 +315,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m"
             ),
         }
-        # Use the dictionary, defaulting to the "else" case if length not 1 or 2
         actions.get(
             len(people),
             lambda: print(
