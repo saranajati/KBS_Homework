@@ -269,10 +269,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def cleanup_processing_markers(self, ready, processed):
         """Clean up processing markers"""
-        if ready in self.facts:
-            self.retract(ready)
-        if processed in self.facts:
-            self.retract(processed)
+        self.retract(ready)
+        self.retract(processed)
 
     @Rule(
         AS.state << State(
