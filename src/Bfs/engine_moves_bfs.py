@@ -152,9 +152,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 crossing_time = max(self.people[person1], self.people[person2])
                 new_time = elapsed_time + crossing_time
 
-                # Create new state with sequence
-                new_left = [
-                    p for p in left_list if p not in [person1, person2]]
+                new_left = list(filter(lambda p: p not in [
+                                person1, person2], left_list))
                 new_right = sorted(right_list + [person1, person2])
                 new_path = list(path) + \
                     [("cross", (person1, person2), crossing_time)]
@@ -217,7 +216,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
 
             # Create new state with sequence
             new_left = sorted(left_list + [person])
-            new_right = [p for p in right_list if p != person]
+            new_right = list(filter(lambda p: p != person, right_list))
             new_path = list(path) + [("return", (person,), crossing_time)]
 
             self.sequence_counter += 1
@@ -249,10 +248,14 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def advance_bfs_level(self, queue, processing_depth):
         """Advance to next BFS level when current level is complete"""
-        unprocessed_states = [f for f in self.facts if isinstance(
-            f, State) and hasattr(f, 'depth') and f.depth == processing_depth]
-        processed_sequences = [
-            f.sequence for f in self.facts if isinstance(f, ProcessedState)]
+        unprocessed_states = list(filter(
+            lambda f: isinstance(f, State) and hasattr(f, 'depth') and f.depth == processing_depth,
+            self.facts
+        ))
+        processed_sequences = list(map(
+            lambda f: f.sequence,
+            filter(lambda f: isinstance(f, ProcessedState), self.facts)
+        ))
 
         all_processed = all(hasattr(
             state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states)
