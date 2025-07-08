@@ -5,7 +5,6 @@ import collections.abc
 collections.Mapping = collections.abc.Mapping
 
 class BridgePuzzleSolverConstraints(KnowledgeEngine):
-    # Rule: Process retraction requests
     @Rule(
         AS.retraction_request
         << RetractionRequest(state_signature=MATCH.signature, reason=MATCH.reason),
@@ -31,7 +30,6 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         self.retract(state)
         self.retract(retraction_request)
 
-    # ===== CONSTRAINT VIOLATION RULES =====
     @Rule(
         AS.state
         << State(
@@ -239,7 +237,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         ),
     )
     def empty_side_crossing_violation(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
+        self, state,  path, 
     ):
         last_move = path[-1]
         self.declare(
@@ -340,7 +338,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         TEST(lambda right: len(right) == 4),
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
     )
-    def goal_reached(self, state, right, elapsed_time, path, max_time):
+    def goal_reached(self, elapsed_time, path, ):
         self.solution_count += 1
         self.solutions.append(
             {
@@ -364,7 +362,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         ),
         NOT(SolutionPrinted(solution_id=MATCH.solution_id)),
     )
-    def print_solution(self, solution, moves, total_time, solution_id):
+    def print_solution(self,  moves, total_time, solution_id):
         print(f"\n{'='*60}")
         print(
             f"\033[1mSOLUTION {solution_id} FOUND (Total time: {total_time} minutes):\033[0m"
@@ -372,21 +370,39 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         print("=" * 60)
         for i, move in enumerate(reversed(moves), 1):
             action, people, time_taken = move
-            if action == "cross":
-                if len(people) == 2:
-                    print(
-                        f"\033[31mStep {i}:\033[0m {people[0]} and {people[1]} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
-                    )
-                else:
-                    print(
-                        f"\033[31mStep {i}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
-                    )
-            elif action == "return":
-                print(
-                    f"\033[31mStep {i}:\033[0m {people[0]} returns with flashlight ⨠ \033[34m{time_taken} minutes\033[0m"
-                )
+
+            action_handlers = {
+                "cross": lambda: self.handle_cross_action(i, people, time_taken),
+                "return": lambda: self.handle_return_action(i, people, time_taken)
+            }
+            action_handlers.get(action, lambda: None)()
+
         print("-" * 60)
-        print(f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
+        print(
+            f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
         print("=" * 60)
         print("")
         self.declare(SolutionPrinted(solution_id=solution_id))
+
+
+    def handle_cross_action(self, step, people, time_taken):
+        people_count = len(people)
+        cross_handlers = {
+            2: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} and {people[1]} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+            1: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m"
+            )
+        }
+
+        def default_handler(): return print(
+            f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+        )
+        cross_handlers.get(people_count, default_handler)()
+
+
+    def handle_return_action(self, step, people, time_taken):
+        print(
+            f"\033[31mStep {step}:\033[0m {people[0]} returns with flashlight ⨠ \033[34m{time_taken} minutes\033[0m"
+        )
