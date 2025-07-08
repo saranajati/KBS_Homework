@@ -1,115 +1,119 @@
-from experta import Fact
-
-# State representation
+from experta import Fact, Field
 
 
 class State(Fact):
-    """Represents a state of the bridge puzzle"""
-    left = None          # People on left side
-    right = None         # People on right side
-    flashlight_location = None  # "left" or "right"
-    elapsed_time = None  # Total time elapsed
-    path = None          # List of moves taken
-    depth = None         # Search depth
-
-# Potential state (before validation)
-
-
-class PotentialState(Fact):
-    """Represents a potential state before validation"""
-    left = None
-    right = None
-    flashlight_location = None
-    elapsed_time = None
-    path = None
-    depth = None
-    move_type = None     # "cross" or "return"
-
-# Solution representation
-
-
-class Solution(Fact):
-    """Represents a found solution"""
-    moves = None         # List of moves
-    total_time = None    # Total time taken
-    solution_id = None   # Unique identifier for the solution
-
-# Track printed solutions
-
-
-class SolutionPrinted(Fact):
-    """Tracks which solutions have been printed"""
-    solution_id = None
-
-# Constraints
+    """Game state with BFS ordering support"""
+    left = Field(list)
+    right = Field(list)
+    flashlight_location = Field(str)
+    elapsed_time = Field(float)
+    path = Field(list)
+    depth = Field(int)
+    sequence = Field(int,mandatory=False)  # NEW: For BFS ordering
 
 
 class TimeConstraint(Fact):
-    """Time constraint for the puzzle"""
-    max_time = None
-
-# State tracking
-
-
-class VisitedState(Fact):
-    """Tracks visited states with best time"""
-    left = None
-    right = None
-    flashlight_location = None
-    best_time = None
-
-# Validation markers
+    """Time limit constraint"""
+    max_time = Field(float)
 
 
 class ValidTimeWindow(Fact):
     """Marks states within valid time window"""
-    state_ref = None
-    elapsed_time = None
+    state_ref = Field(object)
+    elapsed_time = Field(float)
 
 
 class SufficientPeople(Fact):
-    """Marks states with sufficient people for moves"""
-    state_ref = None
-    side = None          # "left" or "right"
-    count = None
+    """Marks states with sufficient people to make moves"""
+    state_ref = Field(object)
+    side = Field(str)
+    count = Field(int)
 
 
 class ValidMoveCondition(Fact):
-    """Marks states with valid move conditions"""
-    state_ref = None
-    move_type = None     # "cross" or "return"
-    left = None
-    right = None
-    elapsed_time = None
-    path = None
-    depth = None
+    """Indicates valid move conditions exist"""
+    state_ref = Field(object)
+    move_type = Field(str)
+    left = Field(list)
+    right = Field(list)
+    elapsed_time = Field(float)
+    path = Field(list)
+    depth = Field(int)
+    sequence = Field(int)  # NEW
 
-# Constraint violations
+
+class PotentialState(Fact):
+    """Potential new state before validation"""
+    left = Field(list)
+    right = Field(list)
+    flashlight_location = Field(str)
+    elapsed_time = Field(float)
+    path = Field(list)
+    depth = Field(int)
+    move_type = Field(str)
+
+
+class VisitedState(Fact):
+    """Tracks visited states for pruning"""
+    left = Field(list)
+    right = Field(list)
+    flashlight_location = Field(str)
+    best_time = Field(float)
 
 
 class StateToRetract(Fact):
     """Marks states for retraction due to constraint violations"""
-    state_ref = None
-    violation_type = None
-    details = None
+    state_ref = Field(object)
+    violation_type = Field(str)
+    details = Field(str)
 
 
 class RetractionRequest(Fact):
-    """Requests retraction of a state"""
-    state_signature = None
-    reason = None
-
-# Print management
+    """Request to retract a state"""
+    state_signature = Field(tuple)
+    reason = Field(str)
 
 
-class PrintMove(Fact):
-    """Manages printing of solution moves"""
-    step = None
-    action = None
-    people = None
-    time = None
+class Solution(Fact):
+    """Found solution"""
+    moves = Field(list)
+    total_time = Field(float)
+    solution_id = Field(int)
 
-# BFS & DFS
+
+class SolutionPrinted(Fact):
+    """Marks that a solution has been printed"""
+    solution_id = Field(int)
+
+
 
 class SearchAlgorithm(Fact):
     algorithm = "bfs"
+
+
+# NEW: BFS Control Facts
+class ProcessedState(Fact):
+    """Mark that a state has been processed"""
+    sequence = Field(int)
+
+
+class ActiveState(Fact):
+    """Mark the currently active state being processed"""
+    state_ref = Field(object)
+
+
+class BFSQueue(Fact):
+    """Maintains BFS queue state"""
+    current_depth = Field(int)
+    processing_depth = Field(int)
+
+
+# Legacy BFS facts (kept for compatibility)
+class ActiveState(Fact):
+    """Mark the currently active state being processed"""
+    state_ref = Field(object)
+
+
+class ReadyToProcess(Fact):
+    """Mark state as ready for processing"""
+    state_ref = Field(object)

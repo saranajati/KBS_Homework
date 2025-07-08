@@ -1,5 +1,5 @@
-from engine_moves import BridgePuzzleSolverMoves
-from engine_constraints import BridgePuzzleSolverConstraints
+from Dfs.engine_moves import BridgePuzzleSolverMoves
+from Dfs.engine_constraints import BridgePuzzleSolverConstraints
 
 class BridgePuzzleSolver(BridgePuzzleSolverMoves, BridgePuzzleSolverConstraints):
    def print_final_summary(self):
