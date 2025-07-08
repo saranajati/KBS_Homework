@@ -321,16 +321,24 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         self.declare(SolutionPrinted(solution_id=solution_id))
 
     def handle_cross_action(self, step, people, time_taken):
-        if len(people) == 2:
-            print(
-                f"\033[31mStep {step}:\033[0m {people[0]} and {people[1]} cross together ⨠ \033[34m{time_taken} minutes\033[0m")
-        elif len(people) == 1:
-            print(
-                f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m")
-        else:
-            print(
-                f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m")
+        actions = {
+            2: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} and {people[1]} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+            1: lambda: print(
+                f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+        }
+        actions.get(
+            len(people),
+            lambda: print(
+                f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            ),
+        )()
 
     def handle_return_action(self, step, people, time_taken):
         print(
-            f"\033[31mStep {step}:\033[0m {people[0]} returns with flashlight ⨠ \033[34m{time_taken} minutes\033[0m")
+            f"\033[31mStep {step}:\033[0m {people[0]} returns with flashlight ⨠ \033[34m{time_taken} minutes\033[0m"
+        )
+
+
