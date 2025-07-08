@@ -269,8 +269,6 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         solution_signature = tuple((action, tuple(people), time_taken)
                                    for action, people, time_taken in path)
 
-        existing_solutions = [s for s in self.solutions if
-                              tuple((action, tuple(people), time_taken) for action, people, time_taken in s['moves']) == solution_signature]
 
         self.solution_count += 1
         self.solutions.append(
