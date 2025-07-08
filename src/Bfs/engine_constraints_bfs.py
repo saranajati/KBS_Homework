@@ -72,7 +72,6 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             depth=MATCH.depth2,
             sequence=MATCH.sequence2,
         ),
-        # Ensure we're comparing different fact objects
         TEST(lambda state1, state2: state1 != state2),
         TEST(
             lambda left1, right1, flashlight_location1, left2, right2, flashlight_location2, elapsed_time1, elapsed_time2:
@@ -261,8 +260,8 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         TEST(lambda left: not left),
         TEST(lambda right: len(right) == 4),
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
-        # Add check to prevent duplicate solutions
         NOT(Solution(moves=MATCH.path, total_time=MATCH.elapsed_time)),
+        TEST(lambda path: path is not None and len(path) > 0),
         salience=5  # Lower salience than pruning/constraint rules
     )
     def goal_reached(self, state, elapsed_time, path):
@@ -270,24 +269,22 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         solution_signature = tuple((action, tuple(people), time_taken)
                                    for action, people, time_taken in path)
 
-        # Check if this exact solution already exists
         existing_solutions = [s for s in self.solutions if
                               tuple((action, tuple(people), time_taken) for action, people, time_taken in s['moves']) == solution_signature]
 
-        if not existing_solutions:
-            self.solution_count += 1
-            self.solutions.append(
-                {
-                    "moves": list(path),
-                    "total_time": elapsed_time,
-                    "solution_number": self.solution_count,
-                }
+        self.solution_count += 1
+        self.solutions.append(
+            {
+                "moves": list(path),
+                "total_time": elapsed_time,
+                "solution_number": self.solution_count,
+            }
+        )
+        self.declare(
+            Solution(
+                moves=path, total_time=elapsed_time, solution_id=self.solution_count
             )
-            self.declare(
-                Solution(
-                    moves=path, total_time=elapsed_time, solution_id=self.solution_count
-                )
-            )
+        )
 
         # Always retract the state to prevent reprocessing
         if isinstance(state, Fact) and state in self.facts:

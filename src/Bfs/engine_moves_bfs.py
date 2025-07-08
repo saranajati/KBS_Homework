@@ -91,7 +91,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def update_better_path(self, state, visited, left, right, flashlight_location, elapsed_time):
         """Update visited state with better time"""
-        # Only retract if visited fact still exists
         if visited in self.facts:
             self.retract(visited)
         self.declare(
@@ -124,7 +123,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def prune_worse_path(self, state):
         """Remove states with worse times"""
-        # Only retract if state still exists
         if state in self.facts:
             self.retract(state)
 
@@ -144,10 +142,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda state_ref, state: state_ref == state),
         TEST(lambda depth, processing_depth: depth == processing_depth),
         TEST(lambda left: len(left) >= 2),
-        # FIXED: Removed problematic TEST conditions that were causing the error
-        # BFS ordering will be handled differently
+        TEST(lambda sequence: sequence is not None),
     )
-    def generate_cross_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth):
+    def generate_cross_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth, sequence):
         """Generate all possible cross moves from left to right"""
         left_list = list(left)
         right_list = list(right)
@@ -180,18 +177,14 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                     )
                 )
 
-                # Update queue depth if needed
                 if new_depth > current_depth:
-                    # Only retract if queue still exists in facts
                     if queue in self.facts:
                         self.retract(queue)
                     self.declare(BFSQueue(current_depth=new_depth,
                                  processing_depth=current_depth))
 
         # Mark this state as processed
-        sequence = getattr(state, 'sequence', None)
-        if sequence is not None:
-            self.declare(ProcessedState(sequence=sequence))
+        self.declare(ProcessedState(sequence=sequence))
 
     @Rule(
         AS.queue << BFSQueue(current_depth=MATCH.current_depth,
@@ -210,10 +203,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda depth, processing_depth: depth == processing_depth),
         TEST(lambda right: len(right) >= 1),
         TEST(lambda left: len(left) > 0),
-        # FIXED: Removed problematic TEST conditions that were causing the error
-        # BFS ordering will be handled differently
+        TEST(lambda sequence: sequence is not None),
     )
-    def generate_return_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth):
+    def generate_return_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth, sequence):
         """Generate all possible return moves from right to left"""
         left_list = list(left)
         right_list = list(right)
@@ -242,35 +234,28 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 )
             )
 
-            # Update queue depth if needed
             if new_depth > current_depth:
-                # Only retract if queue still exists in facts
                 if queue in self.facts:
                     self.retract(queue)
                 self.declare(BFSQueue(current_depth=new_depth,
                              processing_depth=current_depth))
 
         # Mark this state as processed
-        sequence = getattr(state, 'sequence', None)
-        if sequence is not None:
-            self.declare(ProcessedState(sequence=sequence))
+        self.declare(ProcessedState(sequence=sequence))
 
     @Rule(
         AS.queue << BFSQueue(current_depth=MATCH.current_depth,
                              processing_depth=MATCH.processing_depth),
-        # FIXED: Simplified the condition to avoid complex nested TEST with attributes
         TEST(lambda processing_depth,
              current_depth: processing_depth < current_depth),
     )
     def advance_bfs_level(self, queue, processing_depth):
         """Advance to next BFS level when current level is complete"""
-        # Check if all states at current processing depth are processed
         unprocessed_states = [f for f in self.facts if isinstance(
             f, State) and hasattr(f, 'depth') and f.depth == processing_depth]
         processed_sequences = [
             f.sequence for f in self.facts if isinstance(f, ProcessedState)]
 
-        # Only advance if all states at this depth are processed
         if all(hasattr(state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states):
             new_processing_depth = processing_depth + 1
             # Only retract if queue still exists in facts
@@ -289,7 +274,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def cleanup_processing_markers(self, ready, processed):
         """Clean up processing markers"""
-        # Only retract if facts still exist
         if ready in self.facts:
             self.retract(ready)
         if processed in self.facts:
@@ -308,19 +292,19 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         ReadyToProcess(state_ref=MATCH.state_ref),
         TEST(lambda state_ref, state: state_ref == state),
         TEST(lambda depth: depth > 0),
+        TEST(lambda path: path is not None and len(path) > 0),
     )
     def log_search_progress(self, left, right, flashlight_location, elapsed_time, path, depth, sequence):
         """Log search progress"""
-        if path:
-            last_action = path[-1]
-            action, people, time_taken = last_action
-            people_str = ", ".join(people)
-            print(
-                f"⟬BFS Level {depth} (seq:{sequence})⟭ {action}: {people_str}")
-            print(f"\033[31m⬅️  Left: {list(left)}\033[0m")
-            print(f"\033[34m➡️  Right: {list(right)}\033[0m")
-            print(
-                f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m")
-            print("")
+        last_action = path[-1]
+        action, people, time_taken = last_action
+        people_str = ", ".join(people)
+        print(
+            f"⟬BFS Level {depth} (seq:{sequence})⟭ {action}: {people_str}")
+        print(f"\033[31m⬅️  Left: {list(left)}\033[0m")
+        print(f"\033[34m➡️  Right: {list(right)}\033[0m")
+        print(
+            f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m")
+        print("")
 
    
