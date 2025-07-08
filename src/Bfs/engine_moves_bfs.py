@@ -19,11 +19,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         left_side = list(self.people.keys())
         self.sequence_counter += 1
 
-
-        for fact in list(self.facts):
-            if isinstance(fact, (State, VisitedState, ReadyToProcess, ProcessedState, BFSQueue)):
-                if fact in self.facts:
-                    self.retract(fact)
+        facts_to_retract = filter(lambda fact: isinstance(fact, (State, VisitedState, ReadyToProcess, ProcessedState, BFSQueue)), list(self.facts))
+        for fact in facts_to_retract:
+            self.retract(fact)
 
         self.declare(
             State(
@@ -91,8 +89,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     )
     def update_better_path(self, state, visited, left, right, flashlight_location, elapsed_time):
         """Update visited state with better time"""
-        if visited in self.facts:
-            self.retract(visited)
+        self.retract(visited)
         self.declare(
             VisitedState(
                 left=left,
