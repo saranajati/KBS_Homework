@@ -12,7 +12,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.max_time = float(max_time)
         self.solutions = []
         self.solution_count = 0
-        self.sequence_counter = 0  # NEW: Track sequence for BFS ordering
+        self.sequence_counter = 0  
 
     @Rule()
     def initialize(self):
@@ -193,7 +193,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 (new_depth > current_depth) and self._update_bfs_queue(
                     queue, new_depth, current_depth)
 
-        # Mark this state as processed
         self.declare(ProcessedState(sequence=sequence))
 
     def _update_bfs_queue(self, queue, new_depth, current_depth):
@@ -231,7 +230,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             crossing_time = self.people[person]
             new_time = elapsed_time + crossing_time
 
-            # Create new state with sequence
             new_left = sorted(left_list + [person])
             new_right = list(filter(lambda p: p != person, right_list))
             new_path = list(path) + [("return", (person,), crossing_time)]
@@ -254,7 +252,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             (new_depth > current_depth) and self._update_bfs_queue(
                 queue, new_depth, current_depth)
 
-        # Mark this state as processed
         self.declare(ProcessedState(sequence=sequence))
 
     @Rule(

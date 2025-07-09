@@ -9,7 +9,7 @@ class State(Fact):
     elapsed_time = Field(float)
     path = Field(list)
     depth = Field(int)
-    sequence = Field(int,mandatory=False)  # NEW: For BFS ordering
+    sequence = Field(int,mandatory=False) 
 
 
 class TimeConstraint(Fact):
@@ -91,7 +91,6 @@ class SearchAlgorithm(Fact):
     algorithm = "bfs"
 
 
-# NEW: BFS Control Facts
 class ProcessedState(Fact):
     """Mark that a state has been processed"""
     sequence = Field(int)
