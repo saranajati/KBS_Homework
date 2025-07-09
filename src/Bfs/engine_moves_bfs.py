@@ -39,7 +39,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.declare(BFSQueue(current_depth=0, processing_depth=0))
 
     @Rule(
-        AS.state << State(
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location=MATCH.flashlight_location,
@@ -48,17 +49,33 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
+        OR(
+            NOT(
+                VisitedState(
+                    left=MATCH.left,
+                    right=MATCH.right,
+                    flashlight_location=MATCH.flashlight_location,
+                )
+            ),
+            AND(
+                VisitedState(
+                    left=MATCH.left,
+                    right=MATCH.right,
+                    flashlight_location=MATCH.flashlight_location,
+                    best_time=MATCH.best_time,
+                ),
+                TEST(
+                    lambda elapsed_time, best_time: best_time is None
+                    or elapsed_time <= best_time
+                ),
+            ),
+        ),
         TimeConstraint(max_time=MATCH.max_time),
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
-        NOT(
-            VisitedState(
-                left=MATCH.left,
-                right=MATCH.right,
-                flashlight_location=MATCH.flashlight_location,
-            )
-        ),
     )
-    def mark_unvisited_state(self, state, left, right, flashlight_location, elapsed_time):
+    def mark_unvisited_state(
+        self, state, left, right, flashlight_location, elapsed_time
+    ):
         """Mark state as visited and ready for processing"""
         self.declare(
             VisitedState(
@@ -268,7 +285,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         (queue in self.facts) and self.retract(queue)
         self.declare(BFSQueue(
             current_depth=queue['current_depth'], processing_depth=new_processing_depth))
-        print(f"\n🔄 BFS: Advancing to process depth {new_processing_depth}")
+        print(
+            f"\033[1m⚙️  BFS: Advancing to process depth {new_processing_depth}\033[0m\n"
+        )
         return True
 
     @Rule(
@@ -297,17 +316,19 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda depth: depth > 0),
         TEST(lambda path: path is not None and len(path) > 0),
     )
-    def log_search_progress(self, left, right, flashlight_location, elapsed_time, path, depth, sequence):
-        """Log search progress"""
+    def log_search_progress(
+        self, left, right, flashlight_location, elapsed_time, path, depth, sequence
+    ):
         last_action = path[-1]
         action, people, time_taken = last_action
         people_str = ", ".join(people)
+        print(f"⟬BFS Level {depth} (seq:{sequence})⟭ {action}: {people_str}")
         print(
-            f"⟬BFS Level {depth} (seq:{sequence})⟭ {action}: {people_str}")
-        print(f"\033[31m⬅️  Left: {list(left)}\033[0m")
-        print(f"\033[34m➡️  Right: {list(right)}\033[0m")
+            f"\033[31m⬅️  Left: {list(left)}\033[0m   \033[34m➡️  Right: {list(right)}\033[0m"
+        )
         print(
-            f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m")
+            f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m"
+        )
         print("")
 
     def handle_cross_action(self, step, people, time_taken):
