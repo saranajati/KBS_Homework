@@ -249,7 +249,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     def advance_bfs_level(self, queue, processing_depth):
         """Advance to next BFS level when current level is complete"""
         unprocessed_states = list(filter(
-            lambda f: isinstance(f, State) and hasattr(f, 'depth') and f.depth == processing_depth,
+            lambda f: isinstance(f, State) and hasattr(
+                f, 'depth') and f.depth == processing_depth,
             self.facts
         ))
         processed_sequences = list(map(
