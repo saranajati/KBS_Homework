@@ -1,24 +1,27 @@
 from facts import *
 
 
-def main():
-    print("BRIDGE PUZZLE (KBS Homework)")
-    print("-" * 100)
+class BridgePuzzleRunner:
+    def __init__(self):
+        self.travel_time = [("You", 1), ("Lab Assistant", 2),
+                            ("Worker", 5), ("Scientist", 10)]
+        self.max_time = 17
 
-    travel_time = [("You", 1), ("Lab Assistant", 2), ("Worker", 5), ("Scientist", 10)]
-    max_time = 17
+    def run(self):
+        print("BRIDGE PUZZLE (KBS Homework)")
+        print("-" * 100)
 
-    strategy = input("Choose search strategy (bfs/dfs): ").strip().lower()
+        strategy = input("Choose search strategy (bfs/dfs): ").strip().lower()
 
-    if strategy == "bfs":
-        from Bfs.engine_bfs import BridgePuzzleSolverBfs as Solver
-    else:
-        from Dfs.engine import BridgePuzzleSolver as Solver
+        if strategy == "bfs":
+            from Bfs.engine_bfs import BridgePuzzleSolverBfs as Solver
+        else:
+            from Dfs.engine import BridgePuzzleSolver as Solver
 
-    engine = Solver(travel_time, max_time)
-    engine.reset()
-    engine.run()
+        engine = Solver(self.travel_time, self.max_time)
+        engine.reset()
+        engine.run()
 
 
-if __name__ == "__main__":
-    main()
+runner = BridgePuzzleRunner()
+runner.run()
