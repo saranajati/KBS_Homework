@@ -1,5 +1,5 @@
 from facts import *
-from algorithms import *
+
 
 
 def main():
@@ -20,13 +20,6 @@ def main():
     engine = Solver(travel_time, max_time)
     engine.reset()
     engine.run()
-
-    # Alternative approach using algorithms module (commented out)
-    # strategy_input = input("Choose search strategy (bfs / dfs): ").strip().lower()
-    # controller = BridgePuzzleAlgorithms(people=travel_time, max_time=max_time)
-    # controller.reset()
-    # controller.declare(SearchAlgorithm(name=strategy_input))
-    # controller.run()
 
 
 if __name__ == "__main__":

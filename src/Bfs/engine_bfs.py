@@ -11,7 +11,6 @@ class BridgePuzzleSolverBfs(BridgePuzzleSolverMovesBfs, BridgePuzzleSolverConstr
         if self.solutions:
             for i, sol in enumerate(self.solutions, 1):
                 print(f"\nSolution {i}: {sol['total_time']} minutes")
-                # FIX: Print moves in correct chronological order
                 for j, (action, people, time_taken) in enumerate(sol['moves'], 1):
                     if action == "cross":
                         print(
