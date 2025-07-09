@@ -269,6 +269,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         self.solution_signatures.add(solution_signature)
         self.solution_count += 1
         self.solutions.append(
+            
             {
                 "moves": list(path),
                 "total_time": elapsed_time,
