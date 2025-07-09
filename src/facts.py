@@ -108,12 +108,5 @@ class BFSQueue(Fact):
     processing_depth = Field(int)
 
 
-# Legacy BFS facts (kept for compatibility)
-class ActiveState(Fact):
-    """Mark the currently active state being processed"""
-    state_ref = Field(object)
 
 
-class ReadyToProcess(Fact):
-    """Mark state as ready for processing"""
-    state_ref = Field(object)

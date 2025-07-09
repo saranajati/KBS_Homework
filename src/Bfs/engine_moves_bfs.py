@@ -20,7 +20,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.sequence_counter += 1
 
         facts_to_retract = filter(lambda fact: isinstance(
-            fact, (State, VisitedState, ReadyToProcess, ProcessedState, BFSQueue)), list(self.facts))
+            fact, (State, VisitedState, ActiveState, ProcessedState, BFSQueue)), list(self.facts))
         for fact in facts_to_retract:
             self.retract(fact)
 
@@ -85,7 +85,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 best_time=elapsed_time,
             )
         )
-        self.declare(ReadyToProcess(state_ref=state))
+        self.declare(ActiveState(state_ref=state))
 
     @Rule(
         AS.state << State(
@@ -116,7 +116,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 best_time=elapsed_time,
             )
         )
-        self.declare(ReadyToProcess(state_ref=state))
+        self.declare(ActiveState(state_ref=state))
 
     @Rule(
         AS.state << State(
@@ -152,7 +152,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
-        ReadyToProcess(state_ref=MATCH.state_ref),
+        ActiveState(state_ref=MATCH.state_ref),
         TEST(lambda state_ref, state: state_ref == state),
         TEST(lambda depth, processing_depth: depth == processing_depth),
         TEST(lambda left: len(left) >= 2),
@@ -215,7 +215,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
-        ReadyToProcess(state_ref=MATCH.state_ref),
+        ActiveState(state_ref=MATCH.state_ref),
         TEST(lambda state_ref, state: state_ref == state),
         TEST(lambda depth, processing_depth: depth == processing_depth),
         TEST(lambda right: len(right) >= 1),
@@ -291,7 +291,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         return True
 
     @Rule(
-        AS.ready << ReadyToProcess(state_ref=MATCH.state_ref),
+        AS.ready << ActiveState(state_ref=MATCH.state_ref),
         AS.processed << ProcessedState(sequence=MATCH.sequence),
         TEST(lambda state_ref, sequence: hasattr(
             state_ref, 'sequence') and state_ref.sequence == sequence),
@@ -311,7 +311,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
-        ReadyToProcess(state_ref=MATCH.state_ref),
+        ActiveState(state_ref=MATCH.state_ref),
         TEST(lambda state_ref, state: state_ref == state),
         TEST(lambda depth: depth > 0),
         TEST(lambda path: path is not None and len(path) > 0),
