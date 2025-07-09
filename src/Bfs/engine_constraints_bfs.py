@@ -25,7 +25,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         ),
     )
     def process_retraction(self, retraction_request, state):
-        (isinstance(state, Fact) and state in self.facts) and self.retract(state)
+        self.retract(state)
         self.retract(retraction_request)
 
     @Rule(
@@ -44,11 +44,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         salience=10  # Give this rule higher salience to fire sooner
     )
     def time_limit_violation(self, state, elapsed_time, max_time):
-        (isinstance(state, Fact) and state in self.facts) and (
-            self.retract(state),
-            print(
-                f"CONSTRAINT VIOLATION [TIME_LIMIT_EXCEEDED]: State time {elapsed_time} exceeds limit of {max_time} minutes")
-        )
+        self.retract(state)
+        print(
+            f"CONSTRAINT VIOLATION [TIME_LIMIT_EXCEEDED]: State time {elapsed_time} exceeds limit of {max_time} minutes")
 
     @Rule(
         AS.state1
@@ -80,11 +78,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         salience=9  # Prioritize duplicate elimination
     )
     def duplicate_state_elimination(self, state1, elapsed_time1, elapsed_time2):
-        (isinstance(state1, Fact) and state1 in self.facts) and (
-            self.retract(state1),
-            print(
-                f"CONSTRAINT VIOLATION [DUPLICATE_STATE]: Duplicate state found - keeping better time {elapsed_time2} over {elapsed_time1}")
-        )
+        self.retract(state1)
+        print(
+            f"CONSTRAINT VIOLATION [DUPLICATE_STATE]: Duplicate state found - keeping better time {elapsed_time2} over {elapsed_time1}")
 
     @Rule(
         AS.state
@@ -106,11 +102,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         salience=8  # Give this rule higher salience
     )
     def flashlight_violation(self, state, left, right, flashlight_location):
-        (isinstance(state, Fact) and state in self.facts) and (
-            self.retract(state),
-            print(
-                f"CONSTRAINT VIOLATION [FLASHLIGHT_VIOLATION]: Flashlight on {flashlight_location} side with no people present")
-        )
+        self.retract(state)
+        print(
+            f"CONSTRAINT VIOLATION [FLASHLIGHT_VIOLATION]: Flashlight on {flashlight_location} side with no people present")
 
     @Rule(
         AS.state
@@ -131,11 +125,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
     )
     def bridge_capacity_violation(self, state, path):
         last_move = path[-1]
-        (isinstance(state, Fact) and state in self.facts) and (
-            self.retract(state),
-            print(
-                f"CONSTRAINT VIOLATION [BRIDGE_CAPACITY_EXCEEDED]: Attempted to cross {len(last_move[1])} people: {last_move[1]}")
-        )
+        self.retract(state)
+        print(
+            f"CONSTRAINT VIOLATION [BRIDGE_CAPACITY_EXCEEDED]: Attempted to cross {len(last_move[1])} people: {last_move[1]}")
 
     @Rule(
         AS.state
@@ -158,11 +150,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
     )
     def invalid_move_pattern(self, state, path):
         last_move = path[-1]
-        (isinstance(state, Fact) and state in self.facts) and (
-            self.retract(state),
-            print(
-                f"CONSTRAINT VIOLATION [INVALID_MOVE_PATTERN]: Invalid move: {last_move[0]} with {len(last_move[1])} people")
-        )
+        self.retract(state)
+        print(
+            f"CONSTRAINT VIOLATION [INVALID_MOVE_PATTERN]: Invalid move: {last_move[0]} with {len(last_move[1])} people")
 
     @Rule(
         AS.state
@@ -185,11 +175,9 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
     )
     def flashlight_location_inconsistency(self, state, path, flashlight_location):
         last_move = path[-1]
-        (isinstance(state, Fact) and state in self.facts) and (
-            self.retract(state),
-            print(
-                f"CONSTRAINT VIOLATION [FLASHLIGHT_LOCATION_INCONSISTENT]: Flashlight at {flashlight_location} after {last_move[0]} move")
-        )
+        self.retract(state)
+        print(
+            f"CONSTRAINT VIOLATION [FLASHLIGHT_LOCATION_INCONSISTENT]: Flashlight at {flashlight_location} after {last_move[0]} move")
 
     @Rule(
         AS.state
@@ -212,7 +200,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         salience=11  # Highest salience to prune worse paths immediately
     )
     def prune_worse_path(self, state):
-        (state in self.facts) and self.retract(state)
+        self.retract(state)
 
     @Rule(
         AS.state
@@ -232,7 +220,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             flashlight_location=MATCH.flashlight_location,
             best_time=MATCH.best_time,
         ),
-        TEST(lambda elapsed_time, best_time: elapsed_time < best_time),
+        TEST(lambda elapsed_time, best_time: elapsed_time <= best_time),
         salience=12  # Even higher salience for updating best time
     )
     def update_best_time(self, visited, left, right, flashlight_location, elapsed_time):
@@ -261,7 +249,8 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         TEST(lambda left: not left),
         TEST(lambda right: len(right) == 4),
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
-        NOT(Solution(moves=MATCH.path, total_time=MATCH.elapsed_time)),
+        NOT(Solution(moves=MATCH.path,
+            total_time=MATCH.elapsed_time, solution_id=MATCH.id)),
         TEST(lambda path: path is not None and len(path) > 0),
         salience=5  # Lower salience than pruning/constraint rules
     )
@@ -283,9 +272,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
                 moves=path, total_time=elapsed_time, solution_id=self.solution_count
             )
         )
-
-        # Always retract the state to prevent reprocessing
-        (isinstance(state, Fact) and state in self.facts) and self.retract(state)
+        self.retract(state)
 
     @Rule(
         AS.solution
