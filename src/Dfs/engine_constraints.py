@@ -2,7 +2,9 @@ from facts import *
 from experta import *
 import collections
 import collections.abc
+
 collections.Mapping = collections.abc.Mapping
+
 
 class BridgePuzzleSolverConstraints(KnowledgeEngine):
     @Rule(
@@ -22,11 +24,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             == (left, right, flashlight_location, elapsed_time)
         ),
     )
-    def process_retraction(
-        self,
-        retraction_request,
-        state,
-    ):
+    def process_retraction(self, retraction_request, state):
         self.retract(state)
         self.retract(retraction_request)
 
@@ -43,12 +41,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         TimeConstraint(max_time=MATCH.max_time),
         TEST(lambda elapsed_time, max_time: elapsed_time > max_time),
     )
-    def time_limit_violation(
-        self,
-        state,
-        elapsed_time,
-        max_time,
-    ):
+    def time_limit_violation(self, state, elapsed_time, max_time):
         self.declare(
             StateToRetract(
                 state_ref=state,
@@ -85,12 +78,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             and elapsed_time1 > elapsed_time2
         ),
     )
-    def duplicate_state_elimination(
-        self,
-        state1,
-        elapsed_time1,
-        elapsed_time2,
-    ):
+    def duplicate_state_elimination(self, state1, elapsed_time1, elapsed_time2):
         self.declare(
             StateToRetract(
                 state_ref=state1,
@@ -116,9 +104,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             or (flashlight_location == "right" and len(right) == 0)
         ),
     )
-    def flashlight_violation(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
-    ):
+    def flashlight_violation(self, state, flashlight_location):
         self.declare(
             StateToRetract(
                 state_ref=state,
@@ -143,9 +129,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             and len(path[-1][1]) > 2
         ),
     )
-    def bridge_capacity_violation(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
-    ):
+    def bridge_capacity_violation(self, state, path):
         last_move = path[-1]
         self.declare(
             StateToRetract(
@@ -173,9 +157,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             )
         ),
     )
-    def invalid_move_pattern(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
-    ):
+    def invalid_move_pattern(self, state, path):
         last_move = path[-1]
         self.declare(
             StateToRetract(
@@ -203,9 +185,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             )
         ),
     )
-    def flashlight_location_inconsistency(
-        self, state, left, right, flashlight_location, elapsed_time, path, depth
-    ):
+    def flashlight_location_inconsistency(self, state, flashlight_location, path):
         last_move = path[-1]
         self.declare(
             StateToRetract(
@@ -236,9 +216,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             )
         ),
     )
-    def empty_side_crossing_violation(
-        self, state,  path, 
-    ):
+    def empty_side_crossing_violation(self, state, path):
         last_move = path[-1]
         self.declare(
             StateToRetract(
@@ -281,10 +259,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time > best_time),
     )
-    def prune_worse_path(
-        self,
-        state,
-    ):
+    def prune_worse_path(self, state):
         self.retract(state)
 
     @Rule(
@@ -306,14 +281,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time < best_time),
     )
-    def update_best_time(
-        self,
-        visited,
-        left,
-        right,
-        flashlight_location,
-        elapsed_time,
-    ):
+    def update_best_time(self, visited, left, right, flashlight_location, elapsed_time):
         self.retract(visited)
         self.declare(
             VisitedState(
@@ -338,7 +306,7 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         TEST(lambda right: len(right) == 4),
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
     )
-    def goal_reached(self, elapsed_time, path, ):
+    def goal_reached(self, elapsed_time, path):
         self.solution_count += 1
         self.solutions.append(
             {
@@ -362,8 +330,8 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
         ),
         NOT(SolutionPrinted(solution_id=MATCH.solution_id)),
     )
-    def print_solution(self,  moves, total_time, solution_id):
-        print(f"\n{'='*60}")
+    def print_solution(self, moves, total_time, solution_id):
+        print(f"{'='*60}")
         print(
             f"\033[1mSOLUTION {solution_id} FOUND (Total time: {total_time} minutes):\033[0m"
         )
@@ -373,17 +341,15 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
 
             action_handlers = {
                 "cross": lambda: self.handle_cross_action(i, people, time_taken),
-                "return": lambda: self.handle_return_action(i, people, time_taken)
+                "return": lambda: self.handle_return_action(i, people, time_taken),
             }
             action_handlers.get(action, lambda: None)()
 
         print("-" * 60)
-        print(
-            f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
+        print(f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
         print("=" * 60)
         print("")
         self.declare(SolutionPrinted(solution_id=solution_id))
-
 
     def handle_cross_action(self, step, people, time_taken):
         people_count = len(people)
@@ -393,14 +359,15 @@ class BridgePuzzleSolverConstraints(KnowledgeEngine):
             ),
             1: lambda: print(
                 f"\033[31mStep {step}:\033[0m {people[0]} crosses alone ⨠ \033[34m{time_taken} minutes\033[0m"
-            )
+            ),
         }
 
-        def default_handler(): return print(
-            f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
-        )
-        cross_handlers.get(people_count, default_handler)()
+        def default_handler():
+            return print(
+                f"\033[31mStep {step}:\033[0m {', '.join(people)} cross together ⨠ \033[34m{time_taken} minutes\033[0m"
+            )
 
+        cross_handlers.get(people_count, default_handler)()
 
     def handle_return_action(self, step, people, time_taken):
         print(

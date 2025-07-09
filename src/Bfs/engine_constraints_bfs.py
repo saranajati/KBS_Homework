@@ -2,6 +2,7 @@ from facts import *
 from experta import *
 import collections
 import collections.abc
+
 collections.Mapping = collections.abc.Mapping
 
 
@@ -45,11 +46,10 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         ),
         TimeConstraint(max_time=MATCH.max_time),
         TEST(lambda elapsed_time, max_time: elapsed_time > max_time),
-        salience=10  
+        salience=10,
     )
-    def time_limit_violation(self, state, elapsed_time, max_time):
+    def time_limit_violation(self, state):
         self.retract(state)
-
 
     @Rule(
         AS.state1
@@ -74,15 +74,16 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         ),
         TEST(lambda state1, state2: state1 != state2),
         TEST(
-            lambda left1, right1, flashlight_location1, left2, right2, flashlight_location2, elapsed_time1, elapsed_time2:
-            left1 == left2 and right1 == right2 and flashlight_location1 == flashlight_location2 and
-            elapsed_time1 >= elapsed_time2  
+            lambda left1, right1, flashlight_location1, left2, right2, flashlight_location2, elapsed_time1, elapsed_time2: left1
+            == left2
+            and right1 == right2
+            and flashlight_location1 == flashlight_location2
+            and elapsed_time1 >= elapsed_time2
         ),
-        salience=9
+        salience=9,
     )
-    def duplicate_state_elimination(self, state1, elapsed_time1, elapsed_time2):
+    def duplicate_state_elimination(self, state1):
         self.retract(state1)
-
 
     @Rule(
         AS.state
@@ -101,11 +102,10 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             )
             or (flashlight_location == "right" and not right)
         ),
-        salience=8  
+        salience=8,
     )
-    def flashlight_violation(self, state, left, right, flashlight_location):
+    def flashlight_violation(self, state):
         self.retract(state)
-
 
     @Rule(
         AS.state
@@ -118,17 +118,13 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
-        TEST(
-            lambda path: path and path[-1][0] == "cross" and len(
-                path[-1][1]) > 2
-        ),
-        salience=8 
+        TEST(lambda path: path and path[-1][0] == "cross" and len(path[-1][1]) > 2),
+        salience=8,
     )
     def bridge_capacity_violation(self, state, path):
         last_move = path[-1]
         self.retract(state)
 
-
     @Rule(
         AS.state
         << State(
@@ -141,18 +137,18 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             sequence=MATCH.sequence,
         ),
         TEST(
-            lambda path: path and (
+            lambda path: path
+            and (
                 (path[-1][0] == "cross" and len(path[-1][1]) < 2)
                 or (path[-1][0] == "return" and len(path[-1][1]) != 1)
             )
         ),
-        salience=8 
+        salience=8,
     )
     def invalid_move_pattern(self, state, path):
         last_move = path[-1]
         self.retract(state)
 
-
     @Rule(
         AS.state
         << State(
@@ -165,17 +161,17 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             sequence=MATCH.sequence,
         ),
         TEST(
-            lambda path, flashlight_location: path and (
+            lambda path, flashlight_location: path
+            and (
                 (path[-1][0] == "cross" and flashlight_location != "right")
                 or (path[-1][0] == "return" and flashlight_location != "left")
             )
         ),
-        salience=8  
+        salience=8,
     )
-    def flashlight_location_inconsistency(self, state, path, flashlight_location):
+    def flashlight_location_inconsistency(self, state, path):
         last_move = path[-1]
         self.retract(state)
-
 
     @Rule(
         AS.state
@@ -195,7 +191,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             best_time=MATCH.best_time,
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time > best_time),
-        salience=11  
+        salience=11,
     )
     def prune_worse_path(self, state):
         self.retract(state)
@@ -219,7 +215,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             best_time=MATCH.best_time,
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time <= best_time),
-        salience=12  # Even higher salience for updating best time
+        salience=12, 
     )
     def update_best_time(self, visited, left, right, flashlight_location, elapsed_time):
         (visited in self.facts) and self.retract(visited)
@@ -249,14 +245,12 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
         TEST(lambda elapsed_time, max_time: elapsed_time <= max_time),
         NOT(Solution(moves=MATCH.path, total_time=MATCH.elapsed_time)),
         TEST(lambda path: path is not None and len(path) > 0),
-        salience=5,  
+        salience=5,
     )
     def goal_reached(self, state, elapsed_time, path):
         solution_signature = tuple(
             (action, tuple(people), time_taken) for action, people, time_taken in path
         )
-
-
 
         self.solution_signatures.add(solution_signature)
         self.solution_count += 1
@@ -282,7 +276,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             solution_id=MATCH.solution_id,
         ),
         NOT(SolutionPrinted(solution_id=MATCH.solution_id)),
-        salience=1  
+        salience=1,
     )
     def print_solution(self, moves, total_time, solution_id):
         print(f"{'='*60}")
@@ -299,8 +293,7 @@ class BridgePuzzleSolverConstraintsBfs(KnowledgeEngine):
             action_handlers.get(action, lambda: None)()
 
         print("-" * 60)
-        print(
-            f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
+        print(f"\033[32mSUCCESS: All 4 people crossed in {total_time} minutes!\033[0m")
         print("=" * 60)
         print("")
         self.declare(SolutionPrinted(solution_id=solution_id))

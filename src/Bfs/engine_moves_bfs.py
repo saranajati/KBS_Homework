@@ -2,6 +2,7 @@ from facts import *
 from experta import *
 import collections
 import collections.abc
+
 collections.Mapping = collections.abc.Mapping
 
 
@@ -12,15 +13,19 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.max_time = float(max_time)
         self.solutions = []
         self.solution_count = 0
-        self.sequence_counter = 0  
+        self.sequence_counter = 0
 
     @Rule()
     def initialize(self):
         left_side = list(self.people.keys())
         self.sequence_counter += 1
 
-        facts_to_retract = filter(lambda fact: isinstance(
-            fact, (State, VisitedState, ActiveState, ProcessedState, BFSQueue)), list(self.facts))
+        facts_to_retract = filter(
+            lambda fact: isinstance(
+                fact, (State, VisitedState, ActiveState, ProcessedState, BFSQueue)
+            ),
+            list(self.facts),
+        )
         for fact in facts_to_retract:
             self.retract(fact)
 
@@ -76,7 +81,6 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     def mark_unvisited_state(
         self, state, left, right, flashlight_location, elapsed_time
     ):
-        """Mark state as visited and ready for processing"""
         self.declare(
             VisitedState(
                 left=left,
@@ -88,7 +92,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.declare(ActiveState(state_ref=state))
 
     @Rule(
-        AS.state << State(
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location=MATCH.flashlight_location,
@@ -97,7 +102,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             depth=MATCH.depth,
             sequence=MATCH.sequence,
         ),
-        AS.visited << VisitedState(
+        AS.visited
+        << VisitedState(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location=MATCH.flashlight_location,
@@ -105,8 +111,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time < best_time),
     )
-    def update_better_path(self, state, visited, left, right, flashlight_location, elapsed_time):
-        """Update visited state with better time"""
+    def update_better_path(
+        self, state, visited, left, right, flashlight_location, elapsed_time
+    ):
         self.retract(visited)
         self.declare(
             VisitedState(
@@ -119,7 +126,8 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         self.declare(ActiveState(state_ref=state))
 
     @Rule(
-        AS.state << State(
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location=MATCH.flashlight_location,
@@ -137,13 +145,15 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda elapsed_time, best_time: elapsed_time > best_time),
     )
     def prune_worse_path(self, state):
-        """Remove states with worse times"""
         self.retract(state)
 
     @Rule(
-        AS.queue << BFSQueue(current_depth=MATCH.current_depth,
-                             processing_depth=MATCH.processing_depth),
-        AS.state << State(
+        AS.queue
+        << BFSQueue(
+            current_depth=MATCH.current_depth, processing_depth=MATCH.processing_depth
+        ),
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location="left",
@@ -158,8 +168,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda left: len(left) >= 2),
         TEST(lambda sequence: sequence is not None),
     )
-    def generate_cross_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth, sequence):
-        """Generate all possible cross moves from left to right"""
+    def generate_cross_moves(
+        self, queue, left, right, elapsed_time, path, depth, current_depth, sequence
+    ):
         left_list = list(left)
         right_list = list(right)
 
@@ -169,11 +180,11 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 crossing_time = max(self.people[person1], self.people[person2])
                 new_time = elapsed_time + crossing_time
 
-                new_left = list(filter(lambda p: p not in [
-                                person1, person2], left_list))
+                new_left = list(
+                    filter(lambda p: p not in [person1, person2], left_list)
+                )
                 new_right = sorted(right_list + [person1, person2])
-                new_path = list(path) + \
-                    [("cross", (person1, person2), crossing_time)]
+                new_path = list(path) + [("cross", (person1, person2), crossing_time)]
 
                 self.sequence_counter += 1
                 new_depth = depth + 1
@@ -191,21 +202,23 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
                 )
 
                 (new_depth > current_depth) and self._update_bfs_queue(
-                    queue, new_depth, current_depth)
+                    queue, new_depth, current_depth
+                )
 
         self.declare(ProcessedState(sequence=sequence))
 
     def _update_bfs_queue(self, queue, new_depth, current_depth):
-        """Helper method to update BFS queue"""
         (queue in self.facts) and self.retract(queue)
-        self.declare(BFSQueue(current_depth=new_depth,
-                     processing_depth=current_depth))
+        self.declare(BFSQueue(current_depth=new_depth, processing_depth=current_depth))
         return True
 
     @Rule(
-        AS.queue << BFSQueue(current_depth=MATCH.current_depth,
-                             processing_depth=MATCH.processing_depth),
-        AS.state << State(
+        AS.queue
+        << BFSQueue(
+            current_depth=MATCH.current_depth, processing_depth=MATCH.processing_depth
+        ),
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location="right",
@@ -221,8 +234,9 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         TEST(lambda left: len(left) > 0),
         TEST(lambda sequence: sequence is not None),
     )
-    def generate_return_moves(self, state, queue, left, right, elapsed_time, path, depth, current_depth, sequence):
-        """Generate all possible return moves from right to left"""
+    def generate_return_moves(
+        self, queue, left, right, elapsed_time, path, depth, current_depth, sequence
+    ):
         left_list = list(left)
         right_list = list(right)
 
@@ -250,38 +264,49 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
             )
 
             (new_depth > current_depth) and self._update_bfs_queue(
-                queue, new_depth, current_depth)
+                queue, new_depth, current_depth
+            )
 
         self.declare(ProcessedState(sequence=sequence))
 
     @Rule(
-        AS.queue << BFSQueue(current_depth=MATCH.current_depth,
-                             processing_depth=MATCH.processing_depth),
-        TEST(lambda processing_depth,
-             current_depth: processing_depth < current_depth),
+        AS.queue
+        << BFSQueue(
+            current_depth=MATCH.current_depth, processing_depth=MATCH.processing_depth
+        ),
+        TEST(lambda processing_depth, current_depth: processing_depth < current_depth),
     )
     def advance_bfs_level(self, queue, processing_depth):
-        """Advance to next BFS level when current level is complete"""
-        unprocessed_states = list(filter(
-            lambda f: isinstance(f, State) and hasattr(
-                f, 'depth') and f.depth == processing_depth,
-            self.facts
-        ))
-        processed_sequences = list(map(
-            lambda f: f.sequence,
-            filter(lambda f: isinstance(f, ProcessedState), self.facts)
-        ))
+        unprocessed_states = list(
+            filter(
+                lambda f: isinstance(f, State)
+                and hasattr(f, "depth")
+                and f.depth == processing_depth,
+                self.facts,
+            )
+        )
+        processed_sequences = list(
+            map(
+                lambda f: f.sequence,
+                filter(lambda f: isinstance(f, ProcessedState), self.facts),
+            )
+        )
 
-        all_processed = all(hasattr(
-            state, 'sequence') and state.sequence in processed_sequences for state in unprocessed_states)
+        all_processed = all(
+            hasattr(state, "sequence") and state.sequence in processed_sequences
+            for state in unprocessed_states
+        )
         all_processed and self._advance_to_next_level(queue, processing_depth)
 
     def _advance_to_next_level(self, queue, processing_depth):
-        """Helper method to advance to next BFS level"""
         new_processing_depth = processing_depth + 1
         (queue in self.facts) and self.retract(queue)
-        self.declare(BFSQueue(
-            current_depth=queue['current_depth'], processing_depth=new_processing_depth))
+        self.declare(
+            BFSQueue(
+                current_depth=queue["current_depth"],
+                processing_depth=new_processing_depth,
+            )
+        )
         print(
             f"\033[1m⚙️  BFS: Advancing to process depth {new_processing_depth}\033[0m\n"
         )
@@ -290,16 +315,18 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
     @Rule(
         AS.ready << ActiveState(state_ref=MATCH.state_ref),
         AS.processed << ProcessedState(sequence=MATCH.sequence),
-        TEST(lambda state_ref, sequence: hasattr(
-            state_ref, 'sequence') and state_ref.sequence == sequence),
+        TEST(
+            lambda state_ref, sequence: hasattr(state_ref, "sequence")
+            and state_ref.sequence == sequence
+        ),
     )
     def cleanup_processing_markers(self, ready, processed):
-        """Clean up processing markers"""
         self.retract(ready)
         self.retract(processed)
 
     @Rule(
-        AS.state << State(
+        AS.state
+        << State(
             left=MATCH.left,
             right=MATCH.right,
             flashlight_location=MATCH.flashlight_location,

@@ -1,13 +1,11 @@
 from facts import *
 
 
-
 def main():
     print("BRIDGE PUZZLE (KBS Homework)")
     print("-" * 100)
 
-    travel_time = [("You", 1), ("Lab Assistant", 2),
-                   ("Worker", 5), ("Scientist", 10)]
+    travel_time = [("You", 1), ("Lab Assistant", 2), ("Worker", 5), ("Scientist", 10)]
     max_time = 17
 
     strategy = input("Choose search strategy (bfs/dfs): ").strip().lower()
