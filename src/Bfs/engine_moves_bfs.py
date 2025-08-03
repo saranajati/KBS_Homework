@@ -144,7 +144,7 @@ class BridgePuzzleSolverMovesBfs(KnowledgeEngine):
         ),
         TEST(lambda elapsed_time, best_time: elapsed_time > best_time),
     )
-    def prune_worse_path(self, state):
+    def cut_worse_path(self, state):
         self.retract(state)
 
     @Rule(
