@@ -3,14 +3,15 @@ from facts import *
 
 class BridgePuzzleRunner:
     def __init__(self):
-        self.travel_time = [("You", 1), ("Lab Assistant", 2),
-                            ("Worker", 5), ("Scientist", 10)]
+        self.travel_time = [
+            ("You", 1),
+            ("Lab Assistant", 2),
+            ("Worker", 5),
+            ("Scientist", 10),
+        ]
         self.max_time = 17
 
     def run(self):
-        print("BRIDGE PUZZLE (KBS Homework)")
-        print("-" * 100)
-
         strategy = input("Choose search strategy (bfs/dfs): ").strip().lower()
 
         if strategy == "bfs":

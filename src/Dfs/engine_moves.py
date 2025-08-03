@@ -264,13 +264,3 @@ class BridgePuzzleSolverMoves(KnowledgeEngine):
             f"\033[33m🔦  Flashlight: {flashlight_location}\033[0m   \033[32m⏱️  Time: {elapsed_time}\033[0m"
         )
         print("")
-
-        # action_handlers = {
-        #     "cross": lambda: print(
-        #         f"Action: {people[0]} and {people[1]} cross together → {time_taken} min"
-        #     ),
-        #     "return": lambda: print(
-        #         f"Action: {people[0]} returns with flashlight → {time_taken} min"
-        #     ),
-        # }
-        # action_handlers.get(action, lambda: None)()
